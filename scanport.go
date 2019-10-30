@@ -26,6 +26,8 @@ func (i *arrayFlag) Set(value string) error {
 func main() {
 	var hosts arrayFlag
 	var ports arrayFlag
+
+	// Create objects to colorize stdout
 	green := color.New(color.FgGreen)
 	red := color.New(color.FgRed)
 
