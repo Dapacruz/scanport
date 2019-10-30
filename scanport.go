@@ -41,6 +41,9 @@ func main() {
 	}
 
 	// TODO: Check if hosts and ports are defined, exit with error if not
+	fmt.Println(len(*host))
+	fmt.Println(len(*p))
+	os.Exit(1)
 
 	timeout, _ := time.ParseDuration(*t + "s")
 
