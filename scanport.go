@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 type arrayFlag []string
@@ -24,6 +26,8 @@ func (i *arrayFlag) Set(value string) error {
 func main() {
 	var hosts arrayFlag
 	var ports arrayFlag
+	green := color.New(color.FgGreen)
+	red := color.New(color.FgRed)
 
 	flag.Var(&hosts, "host", "Hostname or IP address of host to scan. Flag can be specified more than once.")
 	flag.Var(&ports, "p", "TCP/UDP port to scan. Flag can be specified more than once.")
@@ -45,9 +49,12 @@ func main() {
 
 		for _, p := range ports {
 			r := scanPort(addr, p, strings.ToLower(*protocol), timeout)
-			fmt.Printf("%v (%v) ==> %v/%v is %v\n", addr, hostname, strings.ToUpper(*protocol), p, r)
+			if r == "open" {
+				green.Printf("%v (%v) ==> %v/%v is %v\n", addr, hostname, strings.ToUpper(*protocol), p, r)
+			} else {
+				red.Printf("%v (%v) ==> %v/%v is %v\n", addr, hostname, strings.ToUpper(*protocol), p, r)
+			}
 		}
-
 	}
 }
 
