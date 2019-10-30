@@ -35,10 +35,10 @@ func main() {
 	t := flag.String("t", "1", "Connection timeout in seconds.")
 
 	flag.Parse()
-	// if flag.NArg() == 0 {
-	// 	flag.Usage()
-	// 	os.Exit(1)
-	// }
+	if flag.NFlag() == 0 {
+		flag.Usage()
+		os.Exit(1)
+	}
 
 	// TODO: Check if hosts and ports are defined, exit with error if not
 
