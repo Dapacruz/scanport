@@ -54,6 +54,8 @@ func main() {
 
 	timeout, _ := time.ParseDuration(*t + "s")
 
+	fmt.Printf("\nScanning ports ...\n\n")
+
 	for _, h := range hosts {
 		addr, hostname := resolveHost(h)
 
