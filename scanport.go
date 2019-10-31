@@ -45,6 +45,16 @@ func main() {
 	var tcpPorts arrayFlagString
 	var udpPorts arrayFlagString
 
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "EXAMPLES:\n")
+		fmt.Fprintf(os.Stderr, "  scanport -host www.boeing.com -tcp 80,443\n")
+		fmt.Fprintf(os.Stderr, "  scanport -host 8.8.8.8,8.8.4.4 -udp 53\n")
+		fmt.Fprintf(os.Stderr, "  scanport -host www.google.com,www.vmware.com -tcp 80,443 -udp 53 -t 5\n\n")
+		fmt.Fprintf(os.Stderr, "OPTIONS:\n")
+		flag.PrintDefaults()
+	}
+
 	queue := make(chan [][]string, 100)
 
 	flag.Var(&hosts, "host", "Comma-separated list of hostnames and/or IP addresses of host to scan")
