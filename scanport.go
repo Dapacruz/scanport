@@ -20,7 +20,6 @@ var wg sync.WaitGroup
 var (
 	green = color.New(color.FgGreen)
 	red   = color.New(color.FgRed)
-	blue  = color.New(color.FgBlue)
 )
 
 type arrayFlagString []string
