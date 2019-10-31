@@ -8,9 +8,19 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fatih/color"
+)
+
+var wg sync.WaitGroup
+
+// Create objects to colorize stdout
+var (
+	green = color.New(color.FgGreen)
+	red   = color.New(color.FgRed)
+	blue  = color.New(color.FgBlue)
 )
 
 type arrayFlagString []string
@@ -35,9 +45,7 @@ func main() {
 	var tcpPorts arrayFlagString
 	var udpPorts arrayFlagString
 
-	// Create objects to colorize stdout
-	green := color.New(color.FgGreen)
-	red := color.New(color.FgRed)
+	queue := make(chan [][]string, 100)
 
 	flag.Var(&hosts, "host", "Comma-separated list of hostnames and/or IP addresses of host to scan")
 	flag.Var(&tcpPorts, "tp", "Comma-separated list of TCP ports to scan")
@@ -56,32 +64,49 @@ func main() {
 
 	fmt.Printf("\nScanning ports ...\n\n")
 
-	for _, h := range hosts {
-		addr, hostname := resolveHost(h)
+	for _, host := range hosts {
+		wg.Add(1)
+		go scanHost(host, timeout, queue, tcpPorts, udpPorts)
+	}
 
-		for _, p := range tcpPorts {
-			r := scanTCPPort(addr, p, timeout)
-			if r == "open" {
-				fmt.Printf("%v (%v) ==> TCP/%v is ", addr, hostname, p)
-				green.Println(r)
-			} else {
-				fmt.Printf("%v (%v) ==> TCP/%v is ", addr, hostname, p)
-				red.Println(r)
-			}
-		}
+	wg.Wait()
 
-		for _, p := range udpPorts {
-			r := scanUDPPort(addr, p, timeout)
-			if r == "open" {
-				fmt.Printf("%v (%v) ==> UDP/%v is ", addr, hostname, p)
-				green.Println(r)
-			} else {
-				fmt.Printf("%v (%v) ==> UDP/%v is ", addr, hostname, p)
-				red.Println(r)
-			}
+	close(queue)
+	for i := range queue {
+		for _, r := range i {
+			printResults(r[0], r[1], r[2], r[3], r[4])
 		}
 
 		fmt.Println()
+	}
+}
+
+func scanHost(host string, timeout time.Duration, queue chan [][]string, tcpPorts, udpPorts arrayFlagString) {
+	var results [][]string
+	addr, hostname := resolveHost(host)
+
+	defer wg.Done()
+
+	for _, p := range tcpPorts {
+		state := scanTCPPort(addr, p, timeout)
+		results = append(results, []string{addr, hostname, p, "TCP", state})
+	}
+
+	for _, p := range udpPorts {
+		state := scanUDPPort(addr, p, timeout)
+		results = append(results, []string{addr, hostname, p, "UDP", state})
+	}
+
+	queue <- results
+}
+
+func printResults(addr, hostname, port, protocol, state string) {
+	if state == "open" {
+		fmt.Printf("%v (%v) ==> %v/%v is ", addr, hostname, protocol, port)
+		green.Println(state)
+	} else {
+		fmt.Printf("%v (%v) ==> %v/%v is ", addr, hostname, protocol, port)
+		red.Println(state)
 	}
 }
 
