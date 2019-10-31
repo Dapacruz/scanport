@@ -48,8 +48,8 @@ func main() {
 	queue := make(chan [][]string, 100)
 
 	flag.Var(&hosts, "host", "Comma-separated list of hostnames and/or IP addresses of host to scan")
-	flag.Var(&tcpPorts, "tp", "Comma-separated list of TCP ports to scan")
-	flag.Var(&udpPorts, "up", "Comma-separated list of UDP ports to scan")
+	flag.Var(&tcpPorts, "tcp", "Comma-separated list of TCP ports to scan")
+	flag.Var(&udpPorts, "udp", "Comma-separated list of UDP ports to scan")
 	t := flag.String("t", "1", "Connection timeout in seconds")
 
 	flag.Parse()
