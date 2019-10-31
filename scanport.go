@@ -60,20 +60,26 @@ func main() {
 		for _, p := range tcpPorts {
 			r := scanTCPPort(addr, p, timeout)
 			if r == "open" {
-				green.Printf("%v (%v) ==> TCP/%v is %v\n", addr, hostname, p, r)
+				fmt.Printf("%v (%v) ==> TCP/%v is ", addr, hostname, p)
+				green.Println(r)
 			} else {
-				red.Printf("%v (%v) ==> TCP/%v is %v\n", addr, hostname, p, r)
+				fmt.Printf("%v (%v) ==> TCP/%v is ", addr, hostname, p)
+				red.Println(r)
 			}
 		}
 
 		for _, p := range udpPorts {
 			r := scanUDPPort(addr, p, timeout)
 			if r == "open" {
-				green.Printf("%v (%v) ==> UDP/%v is %v\n", addr, hostname, p, r)
+				fmt.Printf("%v (%v) ==> UDP/%v is ", addr, hostname, p)
+				green.Println(r)
 			} else {
-				red.Printf("%v (%v) ==> UDP/%v is %v\n", addr, hostname, p, r)
+				fmt.Printf("%v (%v) ==> UDP/%v is ", addr, hostname, p)
+				red.Println(r)
 			}
 		}
+
+		fmt.Println()
 	}
 }
 
