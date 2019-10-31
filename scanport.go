@@ -32,21 +32,22 @@ func (i *arrayFlagString) Set(value string) error {
 
 func main() {
 	var hosts arrayFlagString
-	var ports arrayFlagString
+	var tcpPorts arrayFlagString
+	var udpPorts arrayFlagString
 
 	// Create objects to colorize stdout
 	green := color.New(color.FgGreen)
 	red := color.New(color.FgRed)
 
-	flag.Var(&hosts, "host", "Comma-separated list of hostnames and/or IP addresses of host to scan.")
-	flag.Var(&ports, "p", "Comma-separated list of TCP/UDP ports to scan.")
-	protocol := flag.String("proto", "tcp", "Protocol to scan (TCP/UDP).")
-	t := flag.String("t", "1", "Connection timeout in seconds.")
+	flag.Var(&hosts, "host", "Comma-separated list of hostnames and/or IP addresses of host to scan")
+	flag.Var(&tcpPorts, "tp", "Comma-separated list of TCP ports to scan")
+	flag.Var(&udpPorts, "up", "Comma-separated list of UDP ports to scan")
+	t := flag.String("t", "1", "Connection timeout in seconds")
 
 	flag.Parse()
 
 	// Ensure at least one host and port are defined, otherwise exit and display usage
-	if len(hosts) == 0 || len(ports) == 0 {
+	if len(hosts) == 0 || (len(tcpPorts) == 0 && len(udpPorts) == 0) {
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -56,12 +57,21 @@ func main() {
 	for _, h := range hosts {
 		addr, hostname := resolveHost(h)
 
-		for _, p := range ports {
-			r := scanPort(addr, p, strings.ToLower(*protocol), timeout)
+		for _, p := range tcpPorts {
+			r := scanPort(addr, p, "tcp", timeout)
 			if r == "open" {
-				green.Printf("%v (%v) ==> %v/%v is %v\n", addr, hostname, strings.ToUpper(*protocol), p, r)
+				green.Printf("%v (%v) ==> TCP/%v is %v\n", addr, hostname, p, r)
 			} else {
-				red.Printf("%v (%v) ==> %v/%v is %v\n", addr, hostname, strings.ToUpper(*protocol), p, r)
+				red.Printf("%v (%v) ==> TCP/%v is %v\n", addr, hostname, p, r)
+			}
+		}
+
+		for _, p := range udpPorts {
+			r := scanPort(addr, p, "udp", timeout)
+			if r == "open" {
+				green.Printf("%v (%v) ==> UDP/%v is %v\n", addr, hostname, p, r)
+			} else {
+				red.Printf("%v (%v) ==> UDP/%v is %v\n", addr, hostname, p, r)
 			}
 		}
 	}
@@ -71,11 +81,11 @@ func resolveHost(host string) (addr, hostname string) {
 	if isIPAddress(host) {
 		addr = host
 		r, err := net.LookupAddr(addr)
-		if err == nil {
+		if err != nil {
+			hostname = ""
+		} else {
 			// Use first returned hostname and trim trailing period
 			hostname = r[0][:len(r[0])-1]
-		} else {
-			hostname = ""
 		}
 	} else {
 		hostname = host
@@ -97,7 +107,7 @@ func isIPAddress(addr string) bool {
 }
 
 func scanPort(ip string, port string, protocol string, timeout time.Duration) string {
-	// TODO: Implment UDP port testing
+	// TODO: Implement UDP port testing
 
 	target := fmt.Sprintf("%s:%s", ip, port)
 	conn, err := net.DialTimeout(protocol, target, timeout)
