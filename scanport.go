@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"net"
@@ -12,32 +13,39 @@ import (
 	"github.com/fatih/color"
 )
 
-type arrayFlag []string
+type arrayFlagString []string
 
-func (i *arrayFlag) String() string {
+func (i *arrayFlagString) String() string {
 	return fmt.Sprintf("%s", *i)
 }
 
-func (i *arrayFlag) Set(value string) error {
-	*i = append(*i, value)
+func (i *arrayFlagString) Set(value string) error {
+	if len(*i) > 0 {
+		return errors.New("interval flag already set")
+	}
+	for _, t := range strings.Split(value, ",") {
+		t = strings.Trim(t, " ")
+		*i = append(*i, t)
+	}
 	return nil
 }
 
 func main() {
-	var hosts arrayFlag
-	var ports arrayFlag
+	var hosts arrayFlagString
+	var ports arrayFlagString
 
 	// Create objects to colorize stdout
 	green := color.New(color.FgGreen)
 	red := color.New(color.FgRed)
 
-	flag.Var(&hosts, "host", "Hostname or IP address of host to scan. Flag can be specified more than once.")
-	flag.Var(&ports, "p", "TCP/UDP port to scan. Flag can be specified more than once.")
+	flag.Var(&hosts, "host", "Comma-separated list of hostnames and/or IP addresses of host to scan.")
+	flag.Var(&ports, "p", "Comma-separated list of TCP/UDP ports to scan.")
 	protocol := flag.String("proto", "tcp", "Protocol to scan (TCP/UDP).")
 	t := flag.String("t", "1", "Connection timeout in seconds.")
 
 	flag.Parse()
-	// Ensure at least one host and port are defined, exit and display usage
+
+	// Ensure at least one host and port are defined, otherwise exit and display usage
 	if len(hosts) == 0 || len(ports) == 0 {
 		flag.Usage()
 		os.Exit(1)
