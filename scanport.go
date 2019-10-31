@@ -58,7 +58,7 @@ func main() {
 		addr, hostname := resolveHost(h)
 
 		for _, p := range tcpPorts {
-			r := scanPort(addr, p, "tcp", timeout)
+			r := scanTCPPort(addr, p, timeout)
 			if r == "open" {
 				green.Printf("%v (%v) ==> TCP/%v is %v\n", addr, hostname, p, r)
 			} else {
@@ -67,7 +67,7 @@ func main() {
 		}
 
 		for _, p := range udpPorts {
-			r := scanPort(addr, p, "udp", timeout)
+			r := scanUDPPort(addr, p, timeout)
 			if r == "open" {
 				green.Printf("%v (%v) ==> UDP/%v is %v\n", addr, hostname, p, r)
 			} else {
@@ -106,20 +106,44 @@ func isIPAddress(addr string) bool {
 	return re.MatchString(addr)
 }
 
-func scanPort(ip string, port string, protocol string, timeout time.Duration) string {
-	// TODO: Implement UDP port testing
-
+func scanTCPPort(ip string, port string, timeout time.Duration) string {
 	target := fmt.Sprintf("%s:%s", ip, port)
-	conn, err := net.DialTimeout(protocol, target, timeout)
-
+	conn, err := net.DialTimeout("tcp", target, timeout)
 	if err != nil {
 		if strings.Contains(err.Error(), "too many open files") {
 			time.Sleep(timeout)
-			scanPort(ip, port, protocol, timeout)
+			scanTCPPort(ip, port, timeout)
 		}
 		return "closed"
 	}
 
 	conn.Close()
+	return "open"
+}
+
+func scanUDPPort(ip string, port string, timeout time.Duration) string {
+	target := fmt.Sprintf("%s:%s", ip, port)
+	remoteAddr, _ := net.ResolveUDPAddr("udp", target)
+
+	conn, err := net.DialUDP("udp", nil, remoteAddr)
+	conn.SetDeadline(time.Now().Add(timeout))
+	if err != nil {
+		panic(err)
+	}
+
+	defer conn.Close()
+
+	msg := []byte(time.Now().String())
+	_, err = conn.Write(msg)
+	if err != nil {
+		panic(err)
+	}
+
+	buffer := make([]byte, 1024)
+	n, _, _ := conn.ReadFromUDP(buffer)
+	if n == 0 {
+		return "closed"
+	}
+
 	return "open"
 }
