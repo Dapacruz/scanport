@@ -73,12 +73,15 @@ func main() {
 
 	fmt.Printf("\nScanning ports ...\n\n")
 
+	start := time.Now()
 	for _, host := range hosts {
 		wg.Add(1)
 		go scanHost(host, timeout, queue, tcpPorts, udpPorts)
 	}
 
 	wg.Wait()
+
+	elapsed := time.Since(start)
 
 	close(queue)
 	for i := range queue {
@@ -88,6 +91,8 @@ func main() {
 
 		fmt.Println()
 	}
+
+	fmt.Printf("Scan complete: %d host(s) scanned in %.3f seconds\n", len(hosts), elapsed.Seconds())
 }
 
 func scanHost(host string, timeout time.Duration, queue chan [][]string, tcpPorts, udpPorts arrayFlagString) {
