@@ -54,12 +54,11 @@ func main() {
 		flag.PrintDefaults()
 	}
 
-	queue := make(chan [][]string, 100)
-
 	flag.Var(&hosts, "host", "Comma-separated list of hostnames and/or IP addresses of host to scan")
 	flag.Var(&tcpPorts, "tcp", "Comma-separated list of TCP ports to scan")
 	flag.Var(&udpPorts, "udp", "Comma-separated list of UDP ports to scan")
 	t := flag.String("t", "1", "Connection timeout in seconds")
+	maxWorkers := flag.Int("workers", 100, "Max concurrent worker threads")
 
 	flag.Parse()
 
@@ -71,56 +70,77 @@ func main() {
 
 	timeout, _ := time.ParseDuration(*t + "s")
 
+	queue := make(chan []map[string]string, 100)
+	workers := make(chan int, *maxWorkers)
+	done := make(chan bool)
+
 	fmt.Printf("\nScanning ports ...\n\n")
+
+	go printResults(queue, done)
 
 	start := time.Now()
 	for _, host := range hosts {
 		wg.Add(1)
-		go scanHost(host, timeout, queue, tcpPorts, udpPorts)
+		workers <- 1
+		go scanHost(host, timeout, queue, workers, tcpPorts, udpPorts)
 	}
-
 	wg.Wait()
-
 	elapsed := time.Since(start)
 
 	close(queue)
-	for i := range queue {
-		for _, r := range i {
-			printResults(r[0], r[1], r[2], r[3], r[4])
-		}
-
-		fmt.Println()
-	}
+	<-done
 
 	fmt.Printf("Scan complete: %d host(s) scanned in %.3f seconds\n", len(hosts), elapsed.Seconds())
 }
 
-func scanHost(host string, timeout time.Duration, queue chan [][]string, tcpPorts, udpPorts arrayFlagString) {
-	var results [][]string
+func scanHost(host string, timeout time.Duration, queue chan []map[string]string, workers chan int, tcpPorts, udpPorts arrayFlagString) {
+	var results []map[string]string
 	addr, hostname := resolveHost(host)
 
 	defer wg.Done()
 
 	for _, p := range tcpPorts {
 		state := scanTCPPort(addr, p, timeout)
-		results = append(results, []string{addr, hostname, p, "TCP", state})
+		results = append(results, map[string]string{
+			"addr":     addr,
+			"hostname": hostname,
+			"port":     p,
+			"protocol": "TCP",
+			"state":    state,
+		})
 	}
 
 	for _, p := range udpPorts {
 		state := scanUDPPort(addr, p, timeout)
-		results = append(results, []string{addr, hostname, p, "UDP", state})
+		results = append(results, map[string]string{
+			"addr":     addr,
+			"hostname": hostname,
+			"port":     p,
+			"protocol": "UDP",
+			"state":    state,
+		})
 	}
 
 	queue <- results
+	<-workers
 }
 
-func printResults(addr, hostname, port, protocol, state string) {
-	if state == "open" {
-		fmt.Printf("%v (%v) ==> %v/%v is ", addr, hostname, protocol, port)
-		green.Println(state)
-	} else {
-		fmt.Printf("%v (%v) ==> %v/%v is ", addr, hostname, protocol, port)
-		red.Println(state)
+func printResults(queue <-chan []map[string]string, done chan<- bool) {
+	for {
+		if results, queueIsOpen := <-queue; queueIsOpen {
+			for _, r := range results {
+				fmt.Printf("%v (%v) ==> %v/%v is ", r["addr"], r["hostname"], r["port"], r["protocol"])
+				if r["state"] == "open" {
+					green.Println(r["state"])
+				} else {
+					red.Println(r["state"])
+				}
+			}
+			fmt.Println()
+		} else {
+			done <- true
+			return
+		}
 	}
 }
 
