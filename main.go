@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -57,8 +58,8 @@ func main() {
 	flag.Var(&hosts, "host", "Comma-separated list of hostnames and/or IP addresses of host to scan")
 	flag.Var(&tcpPorts, "tcp", "Comma-separated list of TCP ports to scan")
 	flag.Var(&udpPorts, "udp", "Comma-separated list of UDP ports to scan")
-	t := flag.String("t", "1", "Connection timeout in seconds")
-	maxWorkers := flag.Int("workers", 100, "Max concurrent worker threads")
+	t := flag.Int("t", 1, "Connection timeout in seconds")
+	maxWorkers := flag.Int("w", 100, "Max concurrent worker threads")
 
 	flag.Parse()
 
@@ -68,7 +69,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	timeout, _ := time.ParseDuration(*t + "s")
+	timeout, _ := time.ParseDuration(strconv.Itoa(*t) + "s")
 
 	queue := make(chan []map[string]string, 100)
 	workers := make(chan int, *maxWorkers)
