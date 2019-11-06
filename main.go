@@ -1,3 +1,4 @@
+// Package scanport is a very fast multi-threaded TCP/UDP port scanner
 package main
 
 import (
