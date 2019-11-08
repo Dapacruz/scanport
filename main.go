@@ -131,7 +131,7 @@ func printResults(queue <-chan []map[string]string, done chan<- bool) {
 	for {
 		if results, queueIsOpen := <-queue; queueIsOpen {
 			for _, r := range results {
-				fmt.Printf("%v (%v) ==> %v/%v is ", r["addr"], r["hostname"], r["port"], r["protocol"])
+				fmt.Printf("%v (%v) ==> %v/%v is ", r["addr"], r["hostname"], r["protocol"], r["port"])
 				if r["state"] == "open" {
 					green.Println(r["state"])
 				} else {
