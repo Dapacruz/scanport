@@ -1,2 +1,7 @@
+<<<<<<< HEAD
 output
 *.exe
+=======
+*.exe
+.vscode
+>>>>>>> c581ab410c74eddbb7d781abe96b37ce2d56d185
