@@ -72,8 +72,7 @@ func main() {
 
 	timeout, _ := time.ParseDuration(strconv.Itoa(*t) + "s")
 
-	queue := make(chan []map[string]string, 100)
-	workers := make(chan int, *maxWorkers)
+	queue := make(chan []map[string]string, *maxWorkers)
 	doneCh := make(chan struct{})
 
 	fmt.Printf("\nScanning ports ...\n\n")
@@ -83,8 +82,7 @@ func main() {
 	start := time.Now()
 	for _, host := range hosts {
 		wg.Add(1)
-		workers <- 1
-		go scanHost(host, timeout, queue, workers, tcpPorts, udpPorts)
+		go scanHost(host, timeout, queue, tcpPorts, udpPorts)
 	}
 	wg.Wait()
 	elapsed := time.Since(start)
@@ -95,7 +93,7 @@ func main() {
 	fmt.Printf("Scan complete: %d host(s) scanned in %.3f seconds\n", len(hosts), elapsed.Seconds())
 }
 
-func scanHost(host string, timeout time.Duration, queue chan []map[string]string, workers chan int, tcpPorts, udpPorts arrayFlagString) {
+func scanHost(host string, timeout time.Duration, queue chan []map[string]string, tcpPorts, udpPorts arrayFlagString) {
 	var results []map[string]string
 	addr, hostname := resolveHost(host)
 
@@ -124,7 +122,6 @@ func scanHost(host string, timeout time.Duration, queue chan []map[string]string
 	}
 
 	queue <- results
-	<-workers
 }
 
 func printResults(queue <-chan []map[string]string, doneCh chan<- struct{}) {
