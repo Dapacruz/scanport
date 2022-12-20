@@ -72,28 +72,28 @@ func main() {
 
 	timeout, _ := time.ParseDuration(strconv.Itoa(*t) + "s")
 
-	queue := make(chan []map[string]string, *maxWorkers)
+	ch := make(chan []map[string]string, *maxWorkers)
 	doneCh := make(chan struct{})
 
 	fmt.Printf("\nScanning ports ...\n\n")
 
-	go printResults(queue, doneCh)
+	go printResults(ch, doneCh)
 
 	start := time.Now()
 	for _, host := range hosts {
 		wg.Add(1)
-		go scanHost(host, timeout, queue, tcpPorts, udpPorts)
+		go scanHost(host, timeout, ch, tcpPorts, udpPorts)
 	}
 	wg.Wait()
 	elapsed := time.Since(start)
 
-	close(queue)
+	close(ch)
 	<-doneCh
 
 	fmt.Printf("Scan complete: %d host(s) scanned in %.3f seconds\n", len(hosts), elapsed.Seconds())
 }
 
-func scanHost(host string, timeout time.Duration, queue chan []map[string]string, tcpPorts, udpPorts arrayFlagString) {
+func scanHost(host string, timeout time.Duration, ch chan []map[string]string, tcpPorts, udpPorts arrayFlagString) {
 	var results []map[string]string
 	addr, hostname := resolveHost(host)
 
@@ -121,12 +121,12 @@ func scanHost(host string, timeout time.Duration, queue chan []map[string]string
 		})
 	}
 
-	queue <- results
+	ch <- results
 }
 
-func printResults(queue <-chan []map[string]string, doneCh chan<- struct{}) {
+func printResults(ch <-chan []map[string]string, doneCh chan<- struct{}) {
 	for {
-		if results, queueIsOpen := <-queue; queueIsOpen {
+		if results, chanIsOpen := <-ch; chanIsOpen {
 			for _, r := range results {
 				fmt.Printf("%v (%v) ==> %v/%v is ", r["addr"], r["hostname"], r["protocol"], r["port"])
 				if r["state"] == "open" {
