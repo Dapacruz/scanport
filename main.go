@@ -74,11 +74,11 @@ func main() {
 
 	queue := make(chan []map[string]string, 100)
 	workers := make(chan int, *maxWorkers)
-	done := make(chan bool)
+	doneCh := make(chan struct{})
 
 	fmt.Printf("\nScanning ports ...\n\n")
 
-	go printResults(queue, done)
+	go printResults(queue, doneCh)
 
 	start := time.Now()
 	for _, host := range hosts {
@@ -90,7 +90,7 @@ func main() {
 	elapsed := time.Since(start)
 
 	close(queue)
-	<-done
+	<-doneCh
 
 	fmt.Printf("Scan complete: %d host(s) scanned in %.3f seconds\n", len(hosts), elapsed.Seconds())
 }
@@ -127,7 +127,7 @@ func scanHost(host string, timeout time.Duration, queue chan []map[string]string
 	<-workers
 }
 
-func printResults(queue <-chan []map[string]string, done chan<- bool) {
+func printResults(queue <-chan []map[string]string, doneCh chan<- struct{}) {
 	for {
 		if results, queueIsOpen := <-queue; queueIsOpen {
 			for _, r := range results {
@@ -140,7 +140,7 @@ func printResults(queue <-chan []map[string]string, done chan<- bool) {
 			}
 			fmt.Println()
 		} else {
-			done <- true
+			doneCh <- struct{}{}
 			return
 		}
 	}
