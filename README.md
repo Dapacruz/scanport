@@ -1,4 +1,6 @@
 ## scanport
+![GitHub](https://img.shields.io/github/license/dapacruz/scanport)
+
 *A Multi-Threaded TCP/UDP Port Scanner*
 </br>
 </br>
